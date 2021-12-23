@@ -1,38 +1,38 @@
-library("dplyr")
+library(dplyr)
 library(stringr)
 library(RCurl)
 library(httr)
 library(gdata)
 library(Hmisc)
 
-
-# Data needed:
-# all the pusa and husa a-d. the pums equivalencies files. 
-# https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2015-2019.pdf
-
 # Read in household PUMS
-husa = read.csv('Preprocessing/PUMS/psam_husa.csv')
-husb = read.csv('Preprocessing/PUMS/psam_husb.csv')
-husc = read.csv('Preprocessing/PUMS/psam_husc.csv')
-husd = read.csv('Preprocessing/PUMS/psam_husd.csv')
+husa = read.csv('data/psam_husa.csv')
+husb = read.csv('data/psam_husb.csv')
+husc = read.csv('data/psam_husc.csv')
+husd = read.csv('data/psam_husd.csv')
 hus = rbind(husa, husb, husc, husd)
 
 # Read in person PUMS
-pusa = read.csv('Preprocessing/PUMS/psam_pusa.csv')
-pusb = read.csv('Preprocessing/PUMS/psam_pusb.csv')
-pusc = read.csv('Preprocessing/PUMS/psam_pusc.csv')
-pusd = read.csv('Preprocessing/PUMS/psam_pusd.csv')
+pusa = read.csv('data/psam_pusa.csv')
+pusb = read.csv('data/psam_pusb.csv')
+pusc = read.csv('data/psam_pusc.csv')
+pusd = read.csv('data/psam_pusd.csv')
 pus = rbind(pusa, pusb, pusc, pusd)
 
 # Merge
 pus.hus.merged = merge(pus[,c('PUMA', 'ST', 'SERIALNO', 'AGEP', 'SEX', 'RAC1P', 'POVPIP', 'SCHL', 'PWGTP')], hus[,c('PUMA', 'ST', 'SERIALNO', 'TEN', 'WGTP')], by = c('PUMA', 'ST', 'SERIALNO'), all.x = T)
 
-# Age 
+# Age: 4 categories, creates 192 strata
 pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 17] = '0.17'
 pus.hus.merged$age.factor[pus.hus.merged$AGEP >=18 & pus.hus.merged$AGEP <= 39] = '18.39'
 pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40 & pus.hus.merged$AGEP <= 64] = '40.64'
 pus.hus.merged$age.factor[pus.hus.merged$AGEP >=65] = '65.'
 pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
+
+# Alternative Age, creates 96 strata
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 39] = '0.39'
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40] = '40.'
+#pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
 
 # Sex
 pus.hus.merged$sex.factor = factor(pus.hus.merged$SEX)
@@ -51,17 +51,12 @@ pus.hus.merged$education.factor = as.factor(ifelse(pus.hus.merged$SCHL < 16, 'No
 # Owner Occupied
 pus.hus.merged$owner_occupied.factor = as.factor(ifelse(pus.hus.merged$TEN <= 2, 'Owner_occupied', 'NoOwner_occupied'))
 
-save(pus.hus.merged, file = 'data/pums_merged_age4.Rda')
 
-pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 39] = '0.39'
-pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40] = '40.'
-pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
-
-save(pus.hus.merged, file = 'data/pums_merged_age2.Rda')
+# Equivalency files
 
 equivfilePaths <- list.files('data/pums_equivalencies', "\\.txt$", full.names = TRUE)
 equiv <- do.call("rbind", lapply(equivfilePaths, function(x){read.delim(x, stringsAsFactor = FALSE, header = F)}))
-# Messy.
+
 # example: 796 34 017797950 0101 001 00882270  
 # example: 796 01 017797750 0100 033 00161542
 # example: 796 11 017023820 0101 001 01702382
@@ -79,7 +74,7 @@ puma.fips.match = data.frame(pumas,fips)
 # Function that links PUMAs to FIPS 
 # Note that some PUMAs are contained within FIPS, some FIPS within PUMAs. 
 # Currently link by going from FIPS to all pumas listed under that FIPS, 
-# so there may be overlaps of individuals/househlolds across different FIPS
+# so there may be overlaps of individuals/households across different FIPS
 
 fips.to.puma = function(fips, df){
   state = as.numeric(substring(fips, 1,2))
@@ -88,7 +83,7 @@ fips.to.puma = function(fips, df){
 }
 
 
-## The following code is copied from the 2020 analysis by Xiao Wu (https://github.com/wxwx1993/PM_COVID/tree/master)
+## The following code (up to line 326) is copied from the 2020 analysis by Xiao Wu (https://github.com/wxwx1993/PM_COVID/tree/master)
 
 date_of_study <- "12-01-2020"
 # Historical data
@@ -328,3 +323,73 @@ aggregate_pm_census_cdc_test_beds <- subset(aggregate_pm_census_cdc_test_beds,
                                               !(Admin2 == "Kings" & Province_State == "New York") &
                                               !(Admin2 == "Queens" & Province_State == "New York") &
                                               !(Admin2 == "Richmond" & Province_State == "New York"))
+
+# Merge the dataframe with historical averages of O3 and NO2
+covid_data<-data.frame(read.csv('data/covid_data20210202_race3.csv'))
+covid_data = merge(cbind.data.frame(fips = covid_data$fips, state = covid_data$State, mean_no2 = covid_data$mean_no2, mean_ozone = covid_data$mean_ozone),
+                   cbind(fips = as.numeric(aggregate_pm_census_cdc_test_beds$fips), Deaths = aggregate_pm_census_cdc_test_beds$Deaths, population = aggregate_pm_census_cdc_test_beds$population, 
+                         mean_pm25 = aggregate_pm_census_cdc_test_beds$mean_pm25, q_popdensity = aggregate_pm_census_cdc_test_beds$q_popdensity, 
+                          beds = aggregate_pm_census_cdc_test_beds$beds, 
+                          obese = aggregate_pm_census_cdc_test_beds$obese, smoke = aggregate_pm_census_cdc_test_beds$smoke, 
+                         mean_summer_temp = aggregate_pm_census_cdc_test_beds$mean_summer_temp, mean_winter_temp= aggregate_pm_census_cdc_test_beds$mean_winter_temp,
+                         mean_summer_rm = aggregate_pm_census_cdc_test_beds$mean_summer_rm, mean_winter_rm = aggregate_pm_census_cdc_test_beds$mean_winter_rm), by = 'fips')
+
+censustract.pm25 = read.csv('data/census_tract_pm25_2018.csv')
+censustract.pm25$geoid = str_pad(censustract.pm25$geoid, 11, pad = '0')
+censustract.pm25$fips = paste(substring(censustract.pm25$geoid, 1, 2), substring(censustract.pm25$geoid, 3,5), sep = "")
+
+# read in census 2018 data which has population by census tract
+censusdata = read.csv('data/census_tract_2009_2019.csv')
+census2018 = subset(censusdata, year == '2018')
+
+# merge with population data from census2018
+censustract.pm25 = merge(censustract.pm25, cbind(geoid = census2018$geoid, population = census2018$population), by = 'geoid', all.x = T)
+
+# weighted variance calculations
+weightedvarlist.pm25 = sapply(split(censustract.pm25, censustract.pm25$fips), function(x){wtd.var(x$pm25, x$population)})
+
+# Merge weighted pm25 variance list with previous dataset
+covid_data = merge(as.data.frame(cbind(fips = as.numeric(names(weightedvarlist.pm25)), weightedvarlist.pm25)), covid_data, by = 'fips')
+
+# FINANCIAL VARIABLES : extract variance and means
+
+hus$HINCP[which(hus$HINCP <= 0)] = NA # remove negative incomes. These are only 1 percent of households
+
+## Updated with weights
+covlist = vector(mode = "list", length = length(covid_data$fips))
+loghouseholdincome = rep(NA, length(covid_data$fips))
+loghousevalue = rep(NA, length(covid_data$fips))
+## Create list of matrices, length of fips (each list item is the 2 x 2 covariance matrix for that fips)
+for (i in 1:length(covid_data$fips)){
+  fip = str_pad(covid_data$fips[i], 5, pad = '0')
+  print(i)
+  fipdat = fips.to.puma(fip, hus)
+  data = na.omit(as.data.frame(cbind(HINCP = fipdat$HINCP, ADJINC = fipdat$ADJINC, VALP = fipdat$VALP, WGTP = fipdat$WGTP)))
+  #print(head(data))
+  covmat = cov.wt(x = cbind(log((data$ADJINC/1000000)*(data$HINCP)), log(data$VALP)), wt = data$WGTP)# inflation factor ADJINC
+  covlist[[i]] = covmat$cov
+  loghouseholdincome[i] = covmat$center[1]
+  loghousevalue[i] = covmat$center[2]
+}
+
+covid_data$loghouseholdincome = loghouseholdincome
+covid_data$loghousevalue = loghousevalue
+
+# Create joint distribution of age, sex, race, poverty, education, owner occupied: matrix called CROSSNEW (3082 x # combs)
+# 2 different options depending on how many categories age is (2 or 4, leads to 96 or 192 strata).
+# check that age in pus.hus.merged matches.
+
+#combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.39', '40.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.17', '18.39', '40.64', '65.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+
+crossnew = data.frame(matrix(NA, nrow = length(covid_data$fips), ncol = nrow(combs)))
+colnames(crossnew) = do.call('paste', combs)
+for (j in 1:length(covid_data$fips)){
+  print(j)
+  data = fips.to.puma(str_pad(covid_data$fips[j], 5, pad = '0'), pus.hus.merged)
+  strata.prop = rep(NA, nrow(combs))
+  for (i in 1:nrow(combs)){
+    strata.prop[i] = sum(data$PWGTP[data$age.factor == combs[i,]$age & data$sex.factor == combs[i,]$sex & data$race.factor == combs[i,]$race & data$poverty.factor == combs[i,]$poverty & data$education.factor == combs[i,]$education & data$owner_occupied.factor == combs[i,]$owner_occupied],na.rm = T)
+  }
+  crossnew[j,] = strata.prop/sum(strata.prop)
+}
