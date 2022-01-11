@@ -6,6 +6,11 @@ library(gdata)
 library(Hmisc)
 
 # Read in household PUMS
+temp = tempfile()
+download.file('https://www2.census.gov/programs-surveys/acs/data/pums/2019/5-Year/csv_pus.zip', temp)
+husa = read.csv(unz(temp, 'psam_husa.csv'))
+unlink(temp)
+
 husa = read.csv('data/psam_husa.csv')
 husb = read.csv('data/psam_husb.csv')
 husc = read.csv('data/psam_husc.csv')
@@ -23,16 +28,16 @@ pus = rbind(pusa, pusb, pusc, pusd)
 pus.hus.merged = merge(pus[,c('PUMA', 'ST', 'SERIALNO', 'AGEP', 'SEX', 'RAC1P', 'POVPIP', 'SCHL', 'PWGTP')], hus[,c('PUMA', 'ST', 'SERIALNO', 'TEN', 'WGTP')], by = c('PUMA', 'ST', 'SERIALNO'), all.x = T)
 
 # Age: 4 categories, creates 192 strata
-pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 17] = '0.17'
-pus.hus.merged$age.factor[pus.hus.merged$AGEP >=18 & pus.hus.merged$AGEP <= 39] = '18.39'
-pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40 & pus.hus.merged$AGEP <= 64] = '40.64'
-pus.hus.merged$age.factor[pus.hus.merged$AGEP >=65] = '65.'
-pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 17] = '0.17'
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP >=18 & pus.hus.merged$AGEP <= 39] = '18.39'
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40 & pus.hus.merged$AGEP <= 64] = '40.64'
+#pus.hus.merged$age.factor[pus.hus.merged$AGEP >=65] = '65.'
+#pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
 
 # Alternative Age, creates 96 strata
-#pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 39] = '0.39'
-#pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40] = '40.'
-#pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
+pus.hus.merged$age.factor[pus.hus.merged$AGEP <= 39] = '0.39'
+pus.hus.merged$age.factor[pus.hus.merged$AGEP >=40] = '40.'
+pus.hus.merged$age.factor = factor(pus.hus.merged$age.factor)
 
 # Sex
 pus.hus.merged$sex.factor = factor(pus.hus.merged$SEX)
@@ -92,7 +97,7 @@ covid_us_hist <- subset(covid_hist, Country_Region == "US" & is.na(FIPS) == F)
 
 # Import outcome data from JHU CSSE
 covid <- read.csv(text = getURL(paste0("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/", date_of_study, ".csv")))
-covid_us <- subset(covid, Country_Region == "US")[, 1:12]
+covid_us <- subset(covid, Country.Region == "US") # change here country_region and [,1:12]
 covid_us <- rbind(covid_us, subset(covid_us_hist, (!(FIPS %in% covid_us$FIPS)) & Confirmed == 0 & Deaths == 0 & is.na(FIPS) == F))
 covid_us$FIPS <- str_pad(covid_us$FIPS, 5, pad = "0")
 
@@ -100,12 +105,9 @@ covid_us$FIPS <- str_pad(covid_us$FIPS, 5, pad = "0")
 county_pm <- read.csv(text = getURL("https://raw.githubusercontent.com/wxwx1993/PM_COVID/master/Data/county_pm25.csv"))
 
 county_temp <- read.csv(text = getURL("https://raw.githubusercontent.com/wxwx1993/PM_COVID/master/Data/temp_seasonal_county.csv"))
-# Import census, brfss, testing, mortality, hosptial beds data as potential confounders
+# Import census, brfss, testing, mortality, hospital beds data as potential confounders
 county_census <- read.csv(text = getURL("https://raw.githubusercontent.com/wxwx1993/PM_COVID/master/Data/census_county_interpolated.csv"))
-#county_brfss <- read.csv(text = getURL("https://www.countyhealthrankings.org/sites/default/files/media/document/analytic_data2020.csv"), skip = 1)
-GET("https://www.countyhealthrankings.org/sites/default/files/media/document/analytic_data2020.csv", 
-    write_disk("county_brfss.csv", overwrite = TRUE))
-county_brfss <- read.csv("county_brfss.csv", skip = 1)
+county_brfss = read.csv("https://www.countyhealthrankings.org/sites/default/files/media/document/analytic_data2020.csv", skip = 1)
 county_brfss <- county_brfss[, c('fipscode', 'v011_rawvalue', 'v009_rawvalue')]
 names(county_brfss) <- c('fips', 'obese', 'smoke')
 county_brfss$fips <- str_pad(county_brfss$fips, 5, pad = "0")
@@ -236,45 +238,8 @@ aggregate_pm_census_cdc_test_beds <- merge(aggregate_pm_census_cdc_test,county_h
                                            all.x = TRUE)
 aggregate_pm_census_cdc_test_beds$beds[is.na(aggregate_pm_census_cdc_test_beds$beds)] <- 0
 
-# Import outcome data from JHU CSSE, calculate the timing of the 1st confirmed case for each county
-date_of_all <- format(seq(as.Date("2020-03-22"), 
-                          as.Date(strptime(date_of_study, "%m-%d-%Y")), 
-                          by = "days"),
-                      "%m-%d-%Y")
-covid_us_daily_confirmed <- lapply(date_of_all,
-                                   function(date_of_all) {
-                                     covid_daily <- read.csv(text=getURL(paste0("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/",
-                                                                                date_of_all,
-                                                                                ".csv")))
-                                     covid_daily <- covid_daily[!duplicated(covid_daily$FIPS), 1:12]
-                                     return(subset(covid_daily, Country_Region == "US" & is.na(FIPS) != TRUE & Confirmed > 0))
-                                   }
-)
 
-covid_us_new_confirmed <- list()
-covid_us_new_confirmed[1] <- covid_us_daily_confirmed[1]
-covid_us_new_confirmed[[1]]$date_since <- length(covid_us_daily_confirmed) 
 
-covid_us_new_confirmed[2:length(date_of_all)] <- lapply(2:(length(covid_us_daily_confirmed)),
-                                                        function(i) {
-                                                          covid_us_new_confirmed <- subset(covid_us_daily_confirmed[[i]],
-                                                                                           !(FIPS %in% unlist(sapply(1:(i - 1),
-                                                                                                                     function(k)covid_us_daily_confirmed[[k]]$FIPS))))
-                                                          if (nrow(covid_us_new_confirmed) > 0) {
-                                                            covid_us_new_confirmed$date_since <- length(covid_us_daily_confirmed) - i + 1
-                                                            return(covid_us_new_confirmed)
-                                                          } else {return(NA)}
-                                                        })
-
-covid_us_new_confirmed.df <- do.call("rbind", 
-                                     covid_us_new_confirmed)[, c("FIPS", "date_since")]
-covid_us_new_confirmed.df$FIPS <- str_pad(covid_us_new_confirmed.df$FIPS, 5, pad = "0")
-aggregate_pm_census_cdc_test_beds <- merge(aggregate_pm_census_cdc_test_beds,
-                                           covid_us_new_confirmed.df,
-                                           by.x = "fips",
-                                           by.y = "FIPS", 
-                                           all.x = TRUE)
-aggregate_pm_census_cdc_test_beds$date_since[is.na(aggregate_pm_census_cdc_test_beds$date_since)] <- 0
 
 aggregate_pm_census_cdc_test_beds <- merge(aggregate_pm_census_cdc_test_beds,
                                            NCHSURCodes2013[, c(1, 7)],
@@ -348,8 +313,17 @@ censustract.pm25 = merge(censustract.pm25, cbind(geoid = census2018$geoid, popul
 # weighted variance calculations
 weightedvarlist.pm25 = sapply(split(censustract.pm25, censustract.pm25$fips), function(x){wtd.var(x$pm25, x$population)})
 
-# Merge weighted pm25 variance list with previous dataset
+# Merge weighted pm25 variance list with previous dataset to ensure same order of FIPS
 covid_data = merge(as.data.frame(cbind(fips = as.numeric(names(weightedvarlist.pm25)), weightedvarlist.pm25)), covid_data, by = 'fips')
+
+# Create list of 3 x 3 covariance matrices for log household income, log house value, PM2.5 (assume PM2.5 is uncorrelated with the previous two)
+covlist.pm25 = vector(mode = "list", length = length(covid_data$fips))
+for (i in 1:length(covlist)){
+  covlist.pm25[[i]] = matrix(0, nrow = 3, ncol = 3)
+  covlist.pm25[[i]][1:2,1:2] = covlist[[i]]
+  covlist.pm25[[i]][3,3] = covid_data$weightedvarlist.pm25[i]
+}
+save(covlist.pm25, file = 'covlist.pm25.Rda')
 
 # FINANCIAL VARIABLES : extract variance and means
 
@@ -362,10 +336,8 @@ loghousevalue = rep(NA, length(covid_data$fips))
 ## Create list of matrices, length of fips (each list item is the 2 x 2 covariance matrix for that fips)
 for (i in 1:length(covid_data$fips)){
   fip = str_pad(covid_data$fips[i], 5, pad = '0')
-  print(i)
   fipdat = fips.to.puma(fip, hus)
   data = na.omit(as.data.frame(cbind(HINCP = fipdat$HINCP, ADJINC = fipdat$ADJINC, VALP = fipdat$VALP, WGTP = fipdat$WGTP)))
-  #print(head(data))
   covmat = cov.wt(x = cbind(log((data$ADJINC/1000000)*(data$HINCP)), log(data$VALP)), wt = data$WGTP)# inflation factor ADJINC
   covlist[[i]] = covmat$cov
   loghouseholdincome[i] = covmat$center[1]
@@ -375,21 +347,86 @@ for (i in 1:length(covid_data$fips)){
 covid_data$loghouseholdincome = loghouseholdincome
 covid_data$loghousevalue = loghousevalue
 
-# Create joint distribution of age, sex, race, poverty, education, owner occupied: matrix called CROSSNEW (3082 x # combs)
+# Create joint distribution of age, sex, race, poverty, education, owner occupied: matrix called cross (3082 x # combs)
 # 2 different options depending on how many categories age is (2 or 4, leads to 96 or 192 strata).
 # check that age in pus.hus.merged matches.
 
-#combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.39', '40.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
-combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.17', '18.39', '40.64', '65.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+# Sensitivity
+pus.hus.merged$sex.factor = rbinom(nrow(pus.hus.merged),1,1/2)
+pus.hus.merged$sex.factor = factor(ifelse(pus.hus.merged$sex.factor==0, 'Male', 'Female'))
+#combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.39', '40.'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+#combs = expand.grid(sex = c('Male', 'Female'))
 
-crossnew = data.frame(matrix(NA, nrow = length(covid_data$fips), ncol = nrow(combs)))
-colnames(crossnew) = do.call('paste', combs)
+combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.39', '40.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+#combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad'),  owner_occupied = c('NoOwner_occupied', 'Owner_occupied'), age = c('0.17', '18.39', '40.64', '65.'), sex = c('Male', 'Female'), race = c('White', 'Black.AfricanAmerican', 'OtherRace'))
+
+cross = data.frame(matrix(NA, nrow = length(covid_data$fips), ncol = nrow(combs)))
+colnames(cross) = do.call('paste', combs)
+colnames(cross) = paste('Stratum:', colnames(cross))
 for (j in 1:length(covid_data$fips)){
-  print(j)
   data = fips.to.puma(str_pad(covid_data$fips[j], 5, pad = '0'), pus.hus.merged)
   strata.prop = rep(NA, nrow(combs))
-  for (i in 1:nrow(combs)){
+  for (i in 1:nrow(combs)){ # Sensitivity 
     strata.prop[i] = sum(data$PWGTP[data$age.factor == combs[i,]$age & data$sex.factor == combs[i,]$sex & data$race.factor == combs[i,]$race & data$poverty.factor == combs[i,]$poverty & data$education.factor == combs[i,]$education & data$owner_occupied.factor == combs[i,]$owner_occupied],na.rm = T)
+    #strata.prop[i] = sum(data$PWGTP[data$sex.factor == combs[i,]],na.rm = T)
   }
-  crossnew[j,] = strata.prop/sum(strata.prop)
+  cross[j,] = strata.prop/sum(strata.prop)
 }
+
+
+# Create adata
+qpop = matrix(0, nrow = length(covid_data$q_popdensity), ncol = length(levels(factor(covid_data$q_popdensity)))) # change ncol
+for (i in 1:nrow(qpop)){
+  qpop[i,covid_data$q_popdensity[i]]=1
+}
+colnames(qpop) = c('qpopdensity 1', 'qpopdensity 2', 'qpopdensity 3', 'qpopdensity 4', 'qpopdensity 5')
+
+states = as.numeric(as.factor(covid_data$state))
+adata = as.matrix(cbind.data.frame(y = covid_data$Deaths, N = covid_data$population, Intercept = rep(1, nrow(covid_data)), 
+                        mean_no2 = covid_data$mean_no2, mean_ozone = covid_data$mean_ozone, 
+                        qpop[,2:5], beds.pop = scale(covid_data$beds/covid_data$population), 
+                        mean_summer_temp = scale(covid_data$mean_summer_temp), mean_winter_temp = scale(covid_data$mean_winter_temp), 
+                        mean_summer_rm = scale(covid_data$mean_summer_rm), mean_winter_rm = scale(covid_data$mean_winter_rm), 
+                        obese = scale(covid_data$obese), smoke = scale(covid_data$smoke), 
+                        cross, 
+                        loghouseholdincome = covid_data$loghouseholdincome, loghousevalue = covid_data$loghousevalue, 
+                        mean_pm25 = covid_data$mean_pm25))
+
+# whicha: create natrix of 0s and 1s with dimension nrow(combs) x (number of categorical levels - number of categorical vars)
+createwhicha = function(cats){ # some lines of this code is borrowed from Jackson's ecoreg package.
+  aoff = cumsum(cats - 1)
+  aoff <- c(0, aoff[-length(aoff)])
+  combs <- as.matrix(expand.grid(lapply(cats,
+                                        function(x)(seq(length=x)))))  # matrix with one row for each cross-class category
+  ### We need a reference category, so subtract one
+  combs <- combs - 1
+  ### Zero-th elements don't get picked, set to NA
+  combs <- replace(combs, combs == 0, NA)
+  whichalist <-  lapply(split(combs, 1:nrow(combs)), function(x) aoff + x)
+  whicha = matrix(0, nrow = length(whichalist), ncol = sum(cats)-length(cats)) # change ncol
+  for (i in 1:length(whichalist)){
+    whicha[i,whichalist[[i]]]=1
+  }
+  return(whicha)
+}
+
+whicha = createwhicha(c(2,2,2,2,2,3))
+
+# For Sensitivity Analyses: Estimate offsets for categorical variables
+## Evaluate strata-specific risks
+
+strata <- adata[,grep("Stratum", colnames(adata))] # extract strata from dataset
+e <- rep(0, ncol(strata))
+for (i in 1:ncol(strata)) { # loop over strata
+  dat <- as.data.frame(adata[,"N"] * strata[,i]) # generate num people w/in strata
+  mod <- glm(adata[,"y"] ~ ., family = poisson(), data = dat) # regress on number of deaths
+  e[i] <- exp(coef(mod)[2]) - 1 # exponentiate coefficient and subtract 1 to get estimated risk parameter
+}
+## use log(e/(1-e)) as gamma_s for each strata
+gamma_s = log(e/(1-e)) # mean -7.133298
+gamma_s[is.na(gamma_s)] <- 0
+
+## Data needed for model running
+save(adata, covlist.pm25, states, gamma_s, whicha, file = 'ecoreg_main.RData')
+
+
