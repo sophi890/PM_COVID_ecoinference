@@ -4,6 +4,8 @@ library(RCurl)
 library(httr)
 library(gdata)
 library(Hmisc)
+library(xml2)
+library(rvest)
 
 # Read in household PUMS
 options(timeout=3000)
@@ -59,13 +61,16 @@ pus.hus.merged$education.factor = as.factor(ifelse(pus.hus.merged$SCHL < 16, 'No
 pus.hus.merged$owner_occupied.factor = as.factor(ifelse(pus.hus.merged$TEN <= 2, 'Owner_occupied', 'NoOwner_occupied'))
 
 # PUMA Equivalency files
-equivfilePaths <- list.files('data/pums_equivalencies', "\\.txt$", full.names = TRUE)
+equivalency_url = 'https://www2.census.gov/geo/docs/reference/puma/'
+pg <- read_html(equivalency_url)
+equivfilePaths = paste(equivalency_url, html_attr(html_nodes(pg, "a"), "href")[13:64], sep = '')
 equiv <- do.call("rbind", lapply(equivfilePaths, function(x){read.delim(x, stringsAsFactor = FALSE, header = F)}))
 
 # example: 796 11 017023820 0101 001 01702382
 # format:  796 StateFIPS StateNationalStandardCode PUMAcode CountyFIPS CountyNationalStandardCode
+# See https://www2.census.gov/geo/pdfs/reference/puma/2010_PUMA_Equivalency_Format_Layout.pdf for more info
 
-# Extract 796 strings
+# Extract 796 strings to get the fips and puma equivalencies
 codes = unlist(lapply(strsplit(equiv[,1][which(startsWith(equiv[,1], '796') == T)], "\\s+"), function(x){x[1]}))
 # Extract PUMAs
 pumas = as.numeric(substring(codes, 14, 18))
