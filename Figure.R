@@ -12,6 +12,10 @@ library("lme4")
 
 library('maps')
 
+library('rstan')
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
 # Figure 1 the US PM2.5 and COVID-19 death maps
 us <- map_data('state')
 
@@ -119,3 +123,68 @@ g2
 dev.off()
 
 # Figure 2 Odds Ratios and Sensitivity Analyses
+
+## Figure 2a
+load('results/fit6.Rdata')
+vec1 = exp((extract(fit6)$pars[,24]))
+load('results/fit1_x.random.dec.RData')
+vec2 = exp((extract(fit1_x.random)$pars[,2]))
+load('results/fit12.Rdata')
+vec3 = exp((extract(fit12)$pars[,24]))
+load('results/fit1_x.random.RData')
+vec4 = exp((extract(fit1_x.random)$pars[,2]))
+
+df = data.frame(x = as.factor(c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )), 
+                y = c(mean(vec1), mean(vec2), mean(vec3), mean(vec4)), 
+                lower = c(quantile(vec1, 0.025), quantile(vec2, 0.025), quantile(vec3, 0.025), quantile(vec4, 0.025)), 
+                upper = c(quantile(vec1, 0.975), quantile(vec2, 0.975), quantile(vec3, 0.975), quantile(vec4, 0.975)))
+
+g3 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) + 
+  geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
+  scale_x_discrete(limits = c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )) + 
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12)
+
+png("pm25_or.jpeg", height = 512, width = 850)
+g3
+dev.off()
+
+## Figure 2b
+
+# Main Analysis
+load('results/fit6.Rdata')
+vec0 = exp((extract(fit6)$pars[,24]))
+
+# Sensitivities
+load('results/fit5.Rdata')
+vec1 = exp((extract(fit5)$pars[,17]))
+load('results/fit8.Rdata')
+vec2 = exp((extract(fit8)$pars[,26]))
+load('results/fit7.Rdata')
+vec3 = exp((extract(fit7)$pars[,17]))
+load('results/fit2.Rdata')
+vec4 = exp((extract(fit2)$pars[,2]))
+load('results/fit1.Rdata')
+vec5 = exp((extract(fit1)$pars[,2]))
+load('results/fit4.Rdata')
+vec6 = exp((extract(fit4)$pars[,2]))
+load('results/fit3.Rdata')
+vec7 = exp((extract(fit3)$pars[,2]))
+
+df = data.frame(x = as.factor(c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')), 
+                y = c(mean(vec0), mean(vec1), mean(vec2), mean(vec3), mean(vec4), mean(vec5), mean(vec6), mean(vec7)), 
+                lower = c(quantile(vec0, 0.025), quantile(vec1, 0.025), quantile(vec2, 0.025), quantile(vec3, 0.025), quantile(vec4, 0.025), quantile(vec5, 0.025), quantile(vec6, 0.025), quantile(vec7, 0.025)), 
+                upper = c(quantile(vec0, 0.975), quantile(vec1, 0.975), quantile(vec2, 0.975), quantile(vec3, 0.975), quantile(vec4, 0.975), quantile(vec5, 0.975), quantile(vec6, 0.975), quantile(vec7, 0.975)))
+
+g4 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper)) + 
+  geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
+  scale_x_discrete(limits = c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')) + 
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12) + theme(axis.text=element_text(size=14),
+                                                                                    axis.title=element_text(size=14))
+
+png("pm25_or_sensitivity.jpeg", height = 512, width = 850)
+g4
+dev.off()
