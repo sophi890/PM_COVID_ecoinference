@@ -6,20 +6,15 @@ library(gdata)
 library(Hmisc)
 
 # Read in household PUMS
+options(timeout=3000)
 temp = tempfile()
-download.file('https://www2.census.gov/programs-surveys/acs/data/pums/2019/5-Year/csv_pus.zip', temp)
+download.file('https://www2.census.gov/programs-surveys/acs/data/pums/2019/5-Year/csv_hus.zip', temp)
 husa = read.csv(unz(temp, 'psam_husa.csv'))
 husb = read.csv(unz(temp, 'psam_husb.csv'))
 husc = read.csv(unz(temp, 'psam_husc.csv'))
 husd = read.csv(unz(temp, 'psam_husd.csv'))
 unlink(temp)
 hus = rbind(husa, husb, husc, husd)
-
-#husa = read.csv('data/psam_husa.csv')
-#husb = read.csv('data/psam_husb.csv')
-#husc = read.csv('data/psam_husc.csv')
-#husd = read.csv('data/psam_husd.csv')
-#hus = rbind(husa, husb, husc, husd)
 
 # Read in person PUMS
 temp = tempfile()
@@ -30,12 +25,6 @@ pusc = read.csv(unz(temp, 'psam_pusc.csv'))
 pusd = read.csv(unz(temp, 'psam_pusd.csv'))
 unlink(temp)
 pus = rbind(pusa, pusb, pusc, pusd)
-
-#pusa = read.csv('data/psam_pusa.csv')
-#pusb = read.csv('data/psam_pusb.csv')
-#pusc = read.csv('data/psam_pusc.csv')
-#pusd = read.csv('data/psam_pusd.csv')
-#pus = rbind(pusa, pusb, pusc, pusd)
 
 # Merge
 pus.hus.merged = merge(pus[,c('PUMA', 'ST', 'SERIALNO', 'AGEP', 'SEX', 'RAC1P', 'POVPIP', 'SCHL', 'PWGTP')], hus[,c('PUMA', 'ST', 'SERIALNO', 'TEN', 'WGTP')], by = c('PUMA', 'ST', 'SERIALNO'), all.x = T)
