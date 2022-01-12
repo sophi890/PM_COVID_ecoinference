@@ -1,6 +1,6 @@
 # Ecological Bias: Air pollution and COVID-19 mortality in the United States
 
-This is the data repository for public available code and data to reproduce analyses in S.M. Woodward, X. Wu, Z. Hou, D. Mork, D. Braun, F. Dominici, 2022. Combining information to estimate individual-level association between air pollution and COVID-19 mortality in the United States.
+This is the data repository for public available code and data to reproduce analyses in S.M. Woodward^\*, X. Wu^\*, Z. Hou, D. Mork, D. Braun, F. Dominici, 2022. Combining information to estimate individual-level association between air pollution and COVID-19 mortality in the United States.
 
 See [here](https://github.com/wxwx1993/PM_COVID/tree/master) for the previous analysis, Wu, X., Nethery, R. C., Sabath, M. B., Braun, D. and Dominici, F., 2020. Air pollution and COVID-19 mortality in the United States: Strengths and limitations of an ecological regression analysis. Science advances, 6(45), p.eabd4049.
 
