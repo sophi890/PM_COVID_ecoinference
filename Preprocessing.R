@@ -8,7 +8,7 @@ library(xml2)
 library(rvest)
 
 # Read in household PUMS
-options(timeout=3000)
+options(timeout=5000)
 temp = tempfile()
 download.file('https://www2.census.gov/programs-surveys/acs/data/pums/2019/5-Year/csv_hus.zip', temp)
 husa = read.csv(unz(temp, 'psam_husa.csv'))
