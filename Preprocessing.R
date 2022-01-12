@@ -69,9 +69,7 @@ pus.hus.merged$education.factor = as.factor(ifelse(pus.hus.merged$SCHL < 16, 'No
 # Owner Occupied
 pus.hus.merged$owner_occupied.factor = as.factor(ifelse(pus.hus.merged$TEN <= 2, 'Owner_occupied', 'NoOwner_occupied'))
 
-
-# Equivalency files
-
+# PUMA Equivalency files
 equivfilePaths <- list.files('data/pums_equivalencies', "\\.txt$", full.names = TRUE)
 equiv <- do.call("rbind", lapply(equivfilePaths, function(x){read.delim(x, stringsAsFactor = FALSE, header = F)}))
 
@@ -98,8 +96,7 @@ fips.to.puma = function(fips, df){
   return(df[df$PUMA %in% puma & df$ST == state,])
 }
 
-
-## The following code (up to line 326) is copied from the 2020 analysis by Xiao Wu (https://github.com/wxwx1993/PM_COVID/tree/master)
+## The following code (up to line 228) is borrowed from the 2020 analysis by Xiao Wu (https://github.com/wxwx1993/PM_COVID/tree/master)
 
 date_of_study <- "12-01-2020"
 # Historical data
@@ -226,7 +223,7 @@ aggregate_pm_census_cdc_test_beds <- subset(aggregate_pm_census_cdc_test_beds,
                                               !(Admin2 == "Queens" & Province_State == "New York") &
                                               !(Admin2 == "Richmond" & Province_State == "New York"))
 
-# Merge the dataframe with historical averages of O3 and NO2
+# Merge the previous dataframe with historical averages of O3 and NO2
 data<-read.csv('data/county_no2_ozone.csv')
 covid_data = merge(cbind.data.frame(fips = data$fips, state = data$state, mean_no2 = data$mean_no2, mean_ozone = data$mean_ozone),
                    cbind(fips = as.numeric(aggregate_pm_census_cdc_test_beds$fips), Deaths = aggregate_pm_census_cdc_test_beds$Deaths, population = aggregate_pm_census_cdc_test_beds$population, 
@@ -236,6 +233,7 @@ covid_data = merge(cbind.data.frame(fips = data$fips, state = data$state, mean_n
                          mean_summer_temp = aggregate_pm_census_cdc_test_beds$mean_summer_temp, mean_winter_temp= aggregate_pm_census_cdc_test_beds$mean_winter_temp,
                          mean_summer_rm = aggregate_pm_census_cdc_test_beds$mean_summer_rm, mean_winter_rm = aggregate_pm_census_cdc_test_beds$mean_winter_rm), by = 'fips')
 
+# Read in census-tract level PM2.5.
 censustract.pm25 = read.csv('data/census_tract_pm25_2018.csv')
 censustract.pm25$geoid = str_pad(censustract.pm25$geoid, 11, pad = '0')
 censustract.pm25$fips = paste(substring(censustract.pm25$geoid, 1, 2), substring(censustract.pm25$geoid, 3,5), sep = "")
@@ -243,10 +241,10 @@ censustract.pm25$fips = paste(substring(censustract.pm25$geoid, 1, 2), substring
 # read in census 2018 data which has population by census tract
 census2018 = read.csv('data/census2018.csv')
 
-# merge with population data from census2018
+# merge census-tract level PM2.5 with population data from census2018
 censustract.pm25 = merge(censustract.pm25, cbind(geoid = census2018$geoid, population = census2018$population), by = 'geoid', all.x = T)
 
-# weighted variance calculations
+# weighted variance calculations of PM2.5 in each county
 weightedvarlist.pm25 = sapply(split(censustract.pm25, censustract.pm25$fips), function(x){wtd.var(x$pm25, x$population)})
 
 # Merge weighted pm25 variance list with previous dataset to ensure same order of FIPS
@@ -254,15 +252,16 @@ covid_data = merge(as.data.frame(cbind(fips = as.numeric(names(weightedvarlist.p
 
 # FINANCIAL VARIABLES : extract variance and means
 
-hus$HINCP[which(hus$HINCP <= 0)] = NA # remove negative incomes. These are only 1 percent of households
+hus$HINCP[which(hus$HINCP <= 0)] = NA # remove negative incomes for simplicity. These are only 1 percent of households
 
-## Updated with weights
+# Create list of 2x2 covariance matrices for log household income and log house value
 covlist = vector(mode = "list", length = length(covid_data$fips))
 ## Create list of matrices, length of fips (each list item is the 2 x 2 covariance matrix for that fips)
 for (i in 1:length(covid_data$fips)){
   fip = str_pad(covid_data$fips[i], 5, pad = '0')
-  fipdat = fips.to.puma(fip, hus)
+  fipdat = fips.to.puma(fip, hus) # extract housing PUMS data for that fips
   data = na.omit(as.data.frame(cbind(HINCP = fipdat$HINCP, ADJINC = fipdat$ADJINC, VALP = fipdat$VALP, WGTP = fipdat$WGTP)))
+  # weighted mean and covariance using weights provided in housing PUMS files
   covmat = cov.wt(x = cbind(log((data$ADJINC/1000000)*(data$HINCP)), log(data$VALP)), wt = data$WGTP)# inflation factor ADJINC
   covlist[[i]] = covmat$cov
   covid_data$loghouseholdincome[i] = covmat$center[1]
@@ -277,9 +276,10 @@ for (i in 1:length(covlist)){
   covlist.pm25[[i]][3,3] = covid_data$weightedvarlist.pm25[i]
 }
 
-# Create joint distribution of age, sex, race, poverty, education, owner occupied: matrix called cross (3082 x # combs)
-# 2 different options depending on how many categories age is (2 or 4, leads to 96 or 192 strata).
-# check that age in pus.hus.merged matches.
+# Create joint distribution of age, sex, race, poverty, education, owner occupied in a matrix called CROSS (dimensions 3082 x # strata)
+# Main analysis uses 96 strata (2 for poverty x 2 for education x 2 for owner occupied x 2 for age x 2 for sex x 3 for race)
+# Two different options in sensitivity analyses depending on how many categories age is (2 or 4, leads to 96 or 192 strata). Commented out are possibilities for sensitivity analyses
+# check that number of levels in age in pus.hus.merged matches otherwise will return error.
 
 # Sensitivity
 pus.hus.merged$sex.factor = rbinom(nrow(pus.hus.merged),1,1/2)
@@ -292,39 +292,45 @@ combs = expand.grid(poverty = c('NoPov', 'Pov'), education = c('NoGrad', 'Grad')
 
 cross = data.frame(matrix(NA, nrow = length(covid_data$fips), ncol = nrow(combs)))
 colnames(cross) = do.call('paste', combs)
-colnames(cross) = paste('Stratum:', colnames(cross))
+colnames(cross) = paste('Stratum:', colnames(cross)) # each column denotes a unique combination of variables above, eg poverty, grad, owner_occupied, 0.39, female, white
 for (j in 1:length(covid_data$fips)){
   data = fips.to.puma(str_pad(covid_data$fips[j], 5, pad = '0'), pus.hus.merged)
   strata.prop = rep(NA, nrow(combs))
   for (i in 1:nrow(combs)){ # Sensitivity 
+    # Account for weights with PWGTP
     strata.prop[i] = sum(data$PWGTP[data$age.factor == combs[i,]$age & data$sex.factor == combs[i,]$sex & data$race.factor == combs[i,]$race & data$poverty.factor == combs[i,]$poverty & data$education.factor == combs[i,]$education & data$owner_occupied.factor == combs[i,]$owner_occupied],na.rm = T)
     #strata.prop[i] = sum(data$PWGTP[data$sex.factor == combs[i,]],na.rm = T)
   }
-  cross[j,] = strata.prop/sum(strata.prop)
+  cross[j,] = strata.prop/sum(strata.prop) # cell i,j in cross denotes the estimated proportion of people in stratum j in county i
 }
 
-
-# Create adata
-qpop = matrix(0, nrow = length(covid_data$q_popdensity), ncol = length(levels(factor(covid_data$q_popdensity)))) # change ncol
+# Convert population density from a 5 level factor into 4 individual indicators.
+qpop = matrix(0, nrow = length(covid_data$q_popdensity), ncol = length(levels(factor(covid_data$q_popdensity)))) 
 for (i in 1:nrow(qpop)){
   qpop[i,covid_data$q_popdensity[i]]=1
 }
 colnames(qpop) = c('qpopdensity 1', 'qpopdensity 2', 'qpopdensity 3', 'qpopdensity 4', 'qpopdensity 5')
 
+# Create numeric states
 states = as.numeric(as.factor(covid_data$state))
+
+# Create adata: main dataframe used in model running.
 adata = as.matrix(cbind.data.frame(y = covid_data$Deaths, N = covid_data$population, Intercept = rep(1, nrow(covid_data)), 
+                        # county-level data:
                         mean_no2 = covid_data$mean_no2, mean_ozone = covid_data$mean_ozone, 
                         qpop[,2:5], beds.pop = scale(covid_data$beds/covid_data$population), 
                         mean_summer_temp = scale(covid_data$mean_summer_temp), mean_winter_temp = scale(covid_data$mean_winter_temp), 
                         mean_summer_rm = scale(covid_data$mean_summer_rm), mean_winter_rm = scale(covid_data$mean_winter_rm), 
                         obese = scale(covid_data$obese), smoke = scale(covid_data$smoke), 
+                        # include the joint distribution of the categorical covariates within each county:
                         cross, 
+                        # continuous covariates:
                         loghouseholdincome = covid_data$loghouseholdincome, loghousevalue = covid_data$loghousevalue, 
-                        mean_pm25 = covid_data$mean_pm25))
+                        mean_pm25 = covid_data$mean_pm25)) 
 
-# whicha: create natrix of 0s and 1s with dimension nrow(combs) x (number of categorical levels - number of categorical vars)
-createwhicha = function(cats){ # some lines of this code is borrowed from Jackson's ecoreg package.
-  aoff = cumsum(cats - 1)
+# Create whicha: matrix of 0s and 1s with dimension nrow(combs) x (number of categorical levels - number of categorical vars)
+createwhicha = function(cats){ # some lines of this code are borrowed from Jackson's ecoreg package.
+  aoff = cumsum(cats - 1) 
   aoff <- c(0, aoff[-length(aoff)])
   combs <- as.matrix(expand.grid(lapply(cats,
                                         function(x)(seq(length=x)))))  # matrix with one row for each cross-class category
@@ -332,15 +338,16 @@ createwhicha = function(cats){ # some lines of this code is borrowed from Jackso
   combs <- combs - 1
   ### Zero-th elements don't get picked, set to NA
   combs <- replace(combs, combs == 0, NA)
-  whichalist <-  lapply(split(combs, 1:nrow(combs)), function(x) aoff + x)
+  whichalist <-  lapply(split(combs, 1:nrow(combs)), function(x) aoff + x) # creates list 
   whicha = matrix(0, nrow = length(whichalist), ncol = sum(cats)-length(cats)) # change ncol
-  for (i in 1:length(whichalist)){
+  for (i in 1:length(whichalist)){ # turn list in a matrix of 0s and 1s.
     whicha[i,whichalist[[i]]]=1
   }
   return(whicha)
 }
 
-whicha = createwhicha(c(2,2,2,2,2,3))
+whicha = createwhicha(c(2,2,2,2,2,3)) # number of levels of poverty, education, owner occupied, age, sex, race
+# change depending on the analysis. Eg some sensitivity analyses use c(2,2,2,4,2,3). 
 
 # For Sensitivity Analyses: Estimate offsets for categorical variables
 ## Evaluate strata-specific risks
@@ -353,10 +360,11 @@ for (i in 1:ncol(strata)) { # loop over strata
   e[i] <- exp(coef(mod)[2]) - 1 # exponentiate coefficient and subtract 1 to get estimated risk parameter
 }
 ## use log(e/(1-e)) as gamma_s for each strata
-gamma_s = log(e/(1-e)) # mean -7.133298
+gamma_s = log(e/(1-e)) 
 gamma_s[is.na(gamma_s)] <- 0
 
-## Data needed for model running
-save(adata, covlist.pm25, states, gamma_s, whicha, file = 'ecoreg_main.RData')
+## Assemble data needed for model running (see RCCluster)
+save(adata, covlist.pm25, states, gamma_s, whicha, file = 'ecoreg_main.RData') 
+# dataframe, variances, states, offsets (only using in sensitivity), matrix corresponding to categorical effects
 
 
