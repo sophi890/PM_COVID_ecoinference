@@ -20,7 +20,7 @@ rstan_options(auto_write = TRUE)
 us <- map_data('state')
 
 #Plot prevalence of COVID-19
-states <- st_read("./data/cb_2017_us_county_500k/cb_2017_us_county_500k.shp")
+states <- st_read("../data/cb_2017_us_county_500k/cb_2017_us_county_500k.shp")
 
 aggregate_pm_census_cdc_test_beds$fips <- str_pad(aggregate_pm_census_cdc_test_beds$fips, 5, pad = "0")
 covid_us <- mutate(aggregate_pm_census_cdc_test_beds,
@@ -125,13 +125,13 @@ dev.off()
 # Figure 2 Odds Ratios and Sensitivity Analyses
 
 ## Figure 2a
-load('results/fit6.Rdata')
+load('./results/fit6.Rdata')
 vec1 = exp((extract(fit6)$pars[,24]))
-load('results/fit1_x.random.dec.RData')
+load('./results/fit1_x.random.dec.RData')
 vec2 = exp((extract(fit1_x.random)$pars[,2]))
-load('results/fit12.Rdata')
+load('./results/fit12.Rdata')
 vec3 = exp((extract(fit12)$pars[,24]))
-load('results/fit1_x.random.RData')
+load('./results/fit1_x.random.RData')
 vec4 = exp((extract(fit1_x.random)$pars[,2]))
 
 df = data.frame(x = as.factor(c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )), 
@@ -153,23 +153,23 @@ dev.off()
 ## Figure 2b
 
 # Main Analysis
-load('results/fit6.Rdata')
+load('./results/fit6.Rdata')
 vec0 = exp((extract(fit6)$pars[,24]))
 
 # Sensitivities
-load('results/fit5.Rdata')
+load('./results/fit5.Rdata')
 vec1 = exp((extract(fit5)$pars[,17]))
-load('results/fit8.Rdata')
+load('./results/fit8.Rdata')
 vec2 = exp((extract(fit8)$pars[,26]))
-load('results/fit7.Rdata')
+load('./results/fit7.Rdata')
 vec3 = exp((extract(fit7)$pars[,17]))
-load('results/fit2.Rdata')
+load('./results/fit2.Rdata')
 vec4 = exp((extract(fit2)$pars[,2]))
-load('results/fit1.Rdata')
+load('./results/fit1.Rdata')
 vec5 = exp((extract(fit1)$pars[,2]))
-load('results/fit4.Rdata')
+load('./results/fit4.Rdata')
 vec6 = exp((extract(fit4)$pars[,2]))
-load('results/fit3.Rdata')
+load('./results/fit3.Rdata')
 vec7 = exp((extract(fit3)$pars[,2]))
 
 df = data.frame(x = as.factor(c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')), 
