@@ -1,6 +1,6 @@
 library(tidyverse)
 library(sp)
-library("raster")
+#library("raster")
 library("dplyr")
 library("sf")
 library("stringr")
@@ -20,7 +20,7 @@ rstan_options(auto_write = TRUE)
 us <- map_data('state')
 
 #Plot prevalence of COVID-19
-states <- st_read("../data/cb_2017_us_county_500k/cb_2017_us_county_500k.shp")
+states <- st_read("./data/cb_2017_us_county_500k/cb_2017_us_county_500k.shp")
 
 aggregate_pm_census_cdc_test_beds$fips <- str_pad(aggregate_pm_census_cdc_test_beds$fips, 5, pad = "0")
 covid_us <- mutate(aggregate_pm_census_cdc_test_beds,
@@ -43,7 +43,7 @@ g1 <- ggplot(statesCOVID) +
   geom_sf(aes(fill = logmortality), color = 'grey', size = 0.005) +
   #  scale_fill_viridis_c(option="magma",begin=0.4)+
   scale_fill_gradient2(expression(paste("# COVID-19 deaths per 100,000")), 
-                       low = "#FFFFE0",
+                       low = "#FFFFFF",
                        mid = "#ffcccb",
                        high = "#8b0000",
                        midpoint = 1,
@@ -94,7 +94,7 @@ g2 <- ggplot(statesPM) +
   #  scale_fill_viridis_c(option="magma",begin=0.4)+
   # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
   scale_fill_gradient2(expression(paste("PM"[2.5])), 
-                       low = "#FFFFE0", #1e90ff
+                       low = "#FFFFFF", #1e90ff
                        mid = "#ffcccb", #ffffba
                        high = "#8b0000", #8b0000
                        midpoint = 6, # 9
@@ -120,6 +120,136 @@ g2 <- ggplot(statesPM) +
 
 png("county_pm.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
 g2
+dev.off()
+
+pm25_var = cbind.data.frame(fips = as.numeric(names(weightedvarlist.pm25)), weightedvarlist.pm25)
+pm25_var$fips <- str_pad(pm25_var$fips, 5, pad = "0")
+pm25_var <- mutate(pm25_var,
+                   STATEFP = str_sub(fips, 1, 2),
+                   COUNTYFP = str_sub(fips, 3, 5))
+pm25_var$log10weightedvarlist.pm25 = log10(pm25_var$weightedvarlist.pm25)
+str(pm25_var)
+str(states)
+states$STATEFP <- as.character(states$STATEFP)
+states$COUNTYFP <- as.character(states$COUNTYFP)
+statesPM25_var <- left_join(states, pm25_var, by = c("STATEFP", "COUNTYFP"))
+
+g3 <- ggplot(statesPM25_var) +
+  xlim(-125, -65) + 
+  ylim(25, 50) +
+  geom_sf(aes(fill = log10weightedvarlist.pm25), color='grey', size = 0.005) +
+  #  scale_fill_viridis_c(option="magma",begin=0.4)+
+  # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
+  scale_fill_gradient2(expression(paste("PM"[2.5], "variance")), 
+                       low = "#FFFFFF", #1e90ff
+                       mid = "#ffcccb", #ffffba
+                       high = "#8b0000", #8b0000
+                       midpoint = -1.4, # 9
+                       breaks = c(-3, -2, -1, 0, 1),
+                       labels = c("0.001", "0.01", "0.1", "1", "10+"),
+                       limits = c(-3, 1),
+                       na.value = "white") +
+  # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 24 * 2, hjust = 0.5),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        line = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal", 
+        legend.text = element_text(angle = 60,  size = 20*2),
+        legend.text.align = 0.65,
+        legend.title = element_text(size = 24*2),
+        legend.key.width = unit(150*2, "points"),
+        panel.grid.major = element_line(colour = "transparent"))
+
+png("county_pm_variance.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
+g3
+dev.off()
+
+loghouseholdincome.var = unlist(lapply(covlist, function(x){x[1,1]}))
+loghousevalue.var = unlist(lapply(covlist, function(x){x[2,2]}))
+county_finances = cbind.data.frame(fips = covid_data$fips, loghouseholdincome.var, loghousevalue.var)
+county_finances$fips <- str_pad(county_finances$fips, 5, pad = "0")
+county_finances <- mutate(county_finances,
+                   STATEFP = str_sub(fips, 1, 2),
+                   COUNTYFP = str_sub(fips, 3, 5))
+str(county_finances)
+str(states)
+states$STATEFP <- as.character(states$STATEFP)
+states$COUNTYFP <- as.character(states$COUNTYFP)
+statescounty_finances <- left_join(states, county_finances, by = c("STATEFP", "COUNTYFP"))
+
+g4 <- ggplot(statescounty_finances) +
+  xlim(-125, -65) + 
+  ylim(25, 50) +
+  geom_sf(aes(fill = loghouseholdincome.var), color='grey', size = 0.005) +
+  #  scale_fill_viridis_c(option="magma",begin=0.4)+
+  # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
+  scale_fill_gradient2(expression(paste("Variance of log household income")), 
+                       low = "#FFFFFF", #1e90ff
+                       mid = "#ffcccb", #ffffba
+                       high = "#8b0000", #8b0000
+                       midpoint = 0.7, # try 1?
+                       breaks = c(0.5, 0.75, 1, 1.25, 1.5),
+                       labels = c("0.5", "0.75", "1", "1.25", "1.5+"),
+                       limits = c(0.5, 1.5),
+                       na.value = "white") +
+  # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 24 * 2,hjust = 0.5),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        line = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal", 
+        legend.text = element_text(angle = 60,  size = 30),
+        legend.text.align = 0.75,
+        legend.title = element_text(size = 18 * 2),
+        legend.key.width = unit(112 * 2, "points"),
+        panel.grid.major = element_line(colour = "transparent"))
+
+png("county_loghouseholdincome_var.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
+g4
+dev.off()
+
+g5 <- ggplot(statescounty_finances) +
+  xlim(-125, -65) + 
+  ylim(25, 50) +
+  geom_sf(aes(fill = loghousevalue.var), color='grey', size = 0.005) +
+  #  scale_fill_viridis_c(option="magma",begin=0.4)+
+  # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
+  scale_fill_gradient2(expression(paste("Variance of log house value")), 
+                       low = "#FFFFFF", #1e90ff
+                       mid = "#ffcccb", #ffffba
+                       high = "#8b0000", #8b0000
+                       midpoint = 0.88,
+                       breaks = c(0.2, 0.5, 0.8, 1.1, 1.4),
+                       labels = c("0.2", "0.5", "0.8", "1.1", "1.4+"),
+                       limits = c(0.2, 1.7),
+                       na.value = "white") +
+  # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 24 * 2,hjust = 0.5),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        line = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal", 
+        legend.text = element_text(angle = 60,  size = 30),
+        legend.text.align = 0.75,
+        legend.title = element_text(size = 18 * 2),
+        legend.key.width = unit(112 * 2, "points"),
+        panel.grid.major = element_line(colour = "transparent"))
+
+png("county_loghousevalue_var.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
+g5
 dev.off()
 
 # Figure 2 Odds Ratios and Sensitivity Analyses
@@ -182,7 +312,7 @@ g4 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
   geom_errorbar(aes(ymin = lower, ymax = upper)) + 
   geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
   scale_x_discrete(limits = c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')) + 
-  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12) + theme(axis.text=element_text(size=14),
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.06) + theme(axis.text=element_text(size=14),
                                                                                     axis.title=element_text(size=14))
 
 png("pm25_or_sensitivity.jpeg", height = 512, width = 850)
