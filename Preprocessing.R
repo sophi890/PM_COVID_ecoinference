@@ -242,9 +242,9 @@ covid_data = merge(cbind.data.frame(fips = data$fips,
 
 # Read in census-tract level PM2.5.
 censustract.pm25 = read.csv('data/census_tract_pm25_2018.csv')
-censustract.pm25$geoid = str_pad(censustract.pm25$geoid, 11, pad = '0')
-censustract.pm25$fips = paste(substring(censustract.pm25$geoid, 1, 2), 
-                              substring(censustract.pm25$geoid, 3, 5), sep = "")
+censustract.pm25$geoidstr = str_pad(censustract.pm25$geoid, 11, pad = '0')
+censustract.pm25$fips = paste(substring(censustract.pm25$geoidstr, 1, 2), 
+                              substring(censustract.pm25$geoidstr, 3, 5), sep = "")
 
 # read in census 2018 data which has population by census tract
 census2018 = read.csv('data/census2018.csv')
