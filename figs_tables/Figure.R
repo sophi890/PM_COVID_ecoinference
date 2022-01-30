@@ -48,7 +48,7 @@ g1 <- ggplot(statesCOVID) +
                        high = "#8b0000",
                        midpoint = 1,
                        breaks = c(-1, 0, 1, 2, 3), 
-                       labels = c("0", "1", "10", "100", "1000+"),
+                       labels = c("0", "1", "10", "100", "1000"),
                        limits = c(-1, 3.5),
                        na.value = "white") +
   # labs(title = expression(paste("Cumulative Deaths Related to COVID-19 until March 30, 2020"))) +
@@ -99,7 +99,7 @@ g2 <- ggplot(statesPM) +
                        high = "#8b0000", #8b0000
                        midpoint = 6, # 9
                        breaks = c(0, 3, 6, 9, 12),
-                       labels = c("0", "3", "6", "9", "12+"),
+                       labels = c("0", "3", "6", "9", "12"),
                        limits = c(0, 15),
                        na.value = "white") +
   # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
@@ -255,52 +255,55 @@ dev.off()
 # Figure 2 Odds Ratios and Sensitivity Analyses
 
 ## Figure 2a
-load('./results/fit6.Rdata')
-vec1 = exp((extract(fit6)$pars[,24]))
+load('./results/archived/fit6.Rdata')
+vec1 = exp((rstan::extract(fit6)$pars[,24]))
 load('./results/fit1_x.random.dec.RData')
-vec2 = exp((extract(fit1_x.random)$pars[,2]))
+vec2 = exp((rstan::extract(fit1_x.random)$pars[,2]))
 load('./results/fit12.Rdata')
-vec3 = exp((extract(fit12)$pars[,24]))
+vec3 = exp((rstan::extract(fit12)$pars[,24]))
 load('./results/fit1_x.random.RData')
-vec4 = exp((extract(fit1_x.random)$pars[,2]))
+vec4 = exp((rstan::extract(fit1_x.random)$pars[,2]))
 
-df = data.frame(x = as.factor(c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )), 
+#c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )
+df = data.frame(x = c(1,2,3,4), 
                 y = c(mean(vec1), mean(vec2), mean(vec3), mean(vec4)), 
                 lower = c(quantile(vec1, 0.025), quantile(vec2, 0.025), quantile(vec3, 0.025), quantile(vec4, 0.025)), 
                 upper = c(quantile(vec1, 0.975), quantile(vec2, 0.975), quantile(vec3, 0.975), quantile(vec4, 0.975)))
 
 g3 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
   geom_point() +
-  geom_errorbar(aes(ymin = lower, ymax = upper)) + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5) + 
   geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
-  scale_x_discrete(limits = c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )) + 
-  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12)
+  #scale_x_discrete(limits = c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )) + 
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12)+ theme(axis.text=element_text(size=14),
+                                                                                   axis.title=element_text(size=14)) +
+                                                                                    theme_bw(base_size = 20)
 
-png("pm25_or.jpeg", height = 512, width = 850)
+png("pm25_or.jpeg", height = 600, width = 900, res = 100)
 g3
 dev.off()
 
 ## Figure 2b
 
 # Main Analysis
-load('./results/fit6.Rdata')
-vec0 = exp((extract(fit6)$pars[,24]))
+load('./results/archived/fit6.Rdata')
+vec0 = exp((rstan::extract(fit6)$pars[,24]))
 
 # Sensitivities
-load('./results/fit5.Rdata')
-vec1 = exp((extract(fit5)$pars[,17]))
-load('./results/fit8.Rdata')
-vec2 = exp((extract(fit8)$pars[,26]))
-load('./results/fit7.Rdata')
-vec3 = exp((extract(fit7)$pars[,17]))
-load('./results/fit2.Rdata')
-vec4 = exp((extract(fit2)$pars[,2]))
-load('./results/fit1.Rdata')
-vec5 = exp((extract(fit1)$pars[,2]))
-load('./results/fit4.Rdata')
-vec6 = exp((extract(fit4)$pars[,2]))
-load('./results/fit3.Rdata')
-vec7 = exp((extract(fit3)$pars[,2]))
+load('./results/archived/fit5.Rdata')
+vec1 = exp((rstan::extract(fit5)$pars[,17]))
+load('./results/archived/fit8.Rdata')
+vec2 = exp((rstan::extract(fit8)$pars[,26]))
+load('./results/archived/fit7.Rdata')
+vec3 = exp((rstan::extract(fit7)$pars[,17]))
+load('./results/archived/fit2.Rdata')
+vec4 = exp((rstan::extract(fit2)$pars[,2]))
+load('./results/archived/fit1.Rdata')
+vec5 = exp((rstan::extract(fit1)$pars[,2]))
+load('./results/archived/fit4.Rdata')
+vec6 = exp((rstan::extract(fit4)$pars[,2]))
+load('./results/archived/fit3.Rdata')
+vec7 = exp((rstan::extract(fit3)$pars[,2]))
 
 df = data.frame(x = as.factor(c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')), 
                 y = c(mean(vec0), mean(vec1), mean(vec2), mean(vec3), mean(vec4), mean(vec5), mean(vec6), mean(vec7)), 
@@ -312,9 +315,12 @@ g4 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
   geom_errorbar(aes(ymin = lower, ymax = upper)) + 
   geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
   scale_x_discrete(limits = c('Main Analysis', 'Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5', 'Model 6', 'Model 7')) + 
-  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.06) + theme(axis.text=element_text(size=14),
-                                                                                    axis.title=element_text(size=14))
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.06) + 
+  theme_bw(base_size = 23) + theme(#axis.text=element_text(size=14),
+                                   #axis.title=element_text(size=14), 
+                                   axis.text.x = element_text(angle = 90)) 
+                                                                                    
 
-png("pm25_or_sensitivity.jpeg", height = 512, width = 850)
+png("pm25_or_sensitivity.jpeg", height = 800, width = 1200, res = 100)
 g4
 dev.off()
