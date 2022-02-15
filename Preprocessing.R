@@ -1,3 +1,4 @@
+library(tidyverse)
 library(dplyr)
 library(stringr)
 library(RCurl)
@@ -240,6 +241,68 @@ covid_data = merge(cbind.data.frame(fips = data$fips,
                          mean_summer_rm = aggregate_pm_census_cdc_test_beds$mean_summer_rm, 
                          mean_winter_rm = aggregate_pm_census_cdc_test_beds$mean_winter_rm), by = 'fips')
 
+# Read in census-tract level PM2.5. Source: Randall Martin.
+censustract.pm25 = read.csv('data/census_tract_pm25_2018.csv')
+censustract.pm25$geoidstr = str_pad(censustract.pm25$geoid, 11, pad = '0')
+censustract.pm25$fips = paste(substring(censustract.pm25$geoidstr, 1, 2), 
+                              substring(censustract.pm25$geoidstr, 3, 5), sep = "")
+
+# Some NA values (but very few, 3.41 x 10^(-5) frequency)
+censustract_pm =
+  list.files(path = "data/rm_predictions/data/",
+             pattern = "*.csv", 
+             full.names = T) %>% 
+  map_df(~read_csv(., col_types = cols(.default = "d"))) 
+
+#censustract_pm =
++   #list.files(path = "data/rm_predictions/data/",
+    #           +              pattern = "*.csv", 
+    #           +              full.names = T) %>% 
+  + #  map_df(~read.csv(., stringsAsFactors = F)) 
+
+censustract_pm_aggregated <- censustract_pm %>% 
+  group_by(geoid) %>% 
+  summarise(mean_pm25 = mean(pm25, na.rm = T))
+censustract_pm_aggregated = as.data.frame(censustract_pm_aggregated)
+censustract_pm_aggregated$geoidstr = str_pad(censustract_pm_aggregated$geoid, 11, pad = '0')
+censustract_pm_aggregated$fips = paste(substring(censustract_pm_aggregated$geoidstr, 1, 2), 
+                              substring(censustract_pm_aggregated$geoidstr, 3, 5), sep = "")
+
+
+# read in census 2018 data which has population by census tract 
+census2018 = read.csv('data/census2018.csv')
+#census2018$geoidstr = str_pad(census2018$geoid, 11, pad = '0')
+
+# read in census 2009-2019 data which has better pop by census tract
+census20092019 = read.csv('/Users/sophie/Documents/ecoreg/census_tract_2009_2019.csv')
+censustract_20092019_aggregated <- census20092019 %>% 
+  group_by(geoid) %>% 
+  summarise(population = mean(population, na.rm = T))
+censustract_20092019_aggregated = as.data.frame(censustract_20092019_aggregated)
+
+# merge census-tract level PM2.5 with population data from census2018
+censustract.pm25 = merge(censustract.pm25, 
+                         cbind(geoid = census2018$geoid, population = census2018$population), 
+                         by = 'geoid', all.x = T)
+
+censustract_pm_aggregated_merged = merge(censustract_pm_aggregated, censustract_20092019_aggregated,
+                         #cbind(geoid = censustract_20092019_aggregated$geoid, population = censustract_20092019_aggregated$population), 
+                         by = 'geoid', all.x = T)
+
+# weighted variance calculations of PM2.5 in each county
+weightedvarlist.pm25 = sapply(split(censustract.pm25, censustract.pm25$fips), 
+                              function(x){wtd.var(x$pm25, x$population)})
+
+weightedvarlist.pm25_2 = sapply(split(censustract_pm_aggregated_merged, censustract_pm_aggregated_merged$fips), 
+                              function(x){wtd.var(x$mean_pm25, x$population)})
+
+# merge census-tract level PM2.5 with population data from census2018
+# Results in 0.04 percent missing since geoid values do not quite match.
+censustract_pm_aggregated_merged = merge(censustract_pm_aggregated, 
+                         cbind(geoid = census2018$geoid, population = census2018$population), 
+                         by = 'geoid', all.x = T)
+
+# test
 # Read in census-tract level PM2.5.
 censustract.pm25 = read.csv('data/census_tract_pm25_2018.csv')
 censustract.pm25$geoidstr = str_pad(censustract.pm25$geoid, 11, pad = '0')
@@ -257,6 +320,19 @@ censustract.pm25 = merge(censustract.pm25,
 # weighted variance calculations of PM2.5 in each county
 weightedvarlist.pm25 = sapply(split(censustract.pm25, censustract.pm25$fips), 
                               function(x){wtd.var(x$pm25, x$population)})
+
+
+# weighted variance calculations of PM2.5 in each county
+censustract_pm_aggregated_merged$fips = as.numeric(censustract_pm_aggregated_merged$fips)
+weightedvarlist.pm25 = sapply(split(censustract_pm_aggregated_merged, censustract_pm_aggregated_merged$fips), 
+                              function(x){wtd.var(x$mean_pm25, x$population, na.rm = T)})
+
+# weighted variance calculations of PM2.5 in each county
+meanlist.pm25 = sapply(split(censustract_pm_aggregated_merged, censustract_pm_aggregated_merged$fips), 
+                              function(x){weighted.mean(x$mean_pm25, w = x$population)})
+
+lengthlist.pm25 = sapply(split(censustract_pm_aggregated2, censustract_pm_aggregated2$fips), 
+                                         function(x){length(x$mean_pm25)})
 
 # Merge weighted pm25 variance list with previous dataset to ensure same order of FIPS
 covid_data = merge(as.data.frame(cbind(fips = as.numeric(names(weightedvarlist.pm25)), weightedvarlist.pm25)), 
@@ -414,4 +490,51 @@ gamma_s[is.na(gamma_s)] <- 0
 save(adata, covlist.pm25, states, gamma_s, whicha, file = 'ecoreg_main.RData') 
 # dataframe, variances, states, offsets (only using in sensitivity), matrix corresponding to categorical effects
 
+#### Randall Martins' County Averages
+county_pm =
+  list.files(path = "data/rm_county/",
+             pattern = "*.csv", 
+             full.names = T) %>% 
+  map_df(~read_csv(., col_types = cols(.default = "c"))) 
+county_pm = as.data.frame(county_pm)
+county_pm$pm25 = as.numeric(county_pm$pm25)
 
+# Pm average over 19 years (2000-2018)
+county_pm_aggregated <- county_pm %>% 
+  group_by(fips) %>% 
+  summarise(mean_pm25 = mean(pm25))
+
+
+## Characteristics of the study cohort (code for Table 3)
+# Census tract-level data
+weighted.mean(x = censustract.pm25$pm25, w= censustract.pm25$population, na.rm = T)
+sqrt(wtd.var(x = censustract.pm25$pm25, w= censustract.pm25$population))
+
+# County-level data
+mean(covid_data$Deaths/(covid_data$population/100000));sd(covid_data$Deaths/(covid_data$population/100000))
+mean(covid_data$mean_no2); sd(covid_data$mean_no2)
+mean(covid_data$mean_ozone); sd(covid_data$mean_ozone)
+mean(covid_data$mean_summer_temp-273.15); sd(covid_data$mean_summer_temp)
+mean(covid_data$mean_winter_temp-273.15); sd(covid_data$mean_winter_temp)
+mean(covid_data$mean_summer_rm); sd(covid_data$mean_summer_rm)
+mean(covid_data$mean_winter_rm); sd(covid_data$mean_winter_rm)
+mean(covid_data$beds/(covid_data$population/100000)); sd(covid_data$beds/(covid_data$population/100000))
+mean(100*covid_data$obese); sd(100*covid_data$obese)
+mean(100*covid_data$smoke); sd(100*covid_data$smoke)
+
+# Individual level data
+sum(pus$PWGTP[pus$POVPIP < 100], na.rm = T)/sum(pus$PWGTP[!is.na(pus$POVPIP)])
+sum(pus$PWGTP[pus$SCHL >= 16], na.rm = T)/sum(pus$PWGTP[!is.na(pus$SCHL)])
+sum(hus$WGTP[hus$TEN <= 2], na.rm = T)/sum(hus$WGTP[!is.na(hus$TEN)]) # owner occupied, not owner occupied
+sum(pus$PWGTP[pus$AGEP >= 40], na.rm = T)/sum(pus$PWGTP[!is.na(pus$AGEP)])
+sum(pus$PWGTP[pus$SEX == 2])/sum(pus$PWGTP[!is.na(pus$SEX)])
+sum(pus$PWGTP[pus$RAC1P == 1], na.rm = T)/sum(pus$PWGTP[!is.na(pus$RAC1P)])
+sum(pus$PWGTP[pus$RAC1P == 2], na.rm = T)/sum(pus$PWGTP[!is.na(pus$RAC1P)])
+sum(pus$PWGTP[pus$RAC1P %in% c("3","4","5","6","7","8","9")], na.rm = T)/sum(pus$PWGTP[!is.na(pus$RAC1P)])
+weighted.mean(x = (hus$ADJINC/1000000)*hus$HINCP/1000, w = hus$WGTP, na.rm = T)
+sqrt(wtd.var(x = (hus$ADJINC/1000000)*hus$HINCP/1000, w = hus$WGTP))
+weighted.mean(x = hus$VALP/1000, w = hus$WGTP, na.rm = T)
+sqrt(wtd.var(x = hus$VALP/1000, w = hus$WGTP))
+
+
+        

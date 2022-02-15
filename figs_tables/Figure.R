@@ -141,12 +141,12 @@ g3 <- ggplot(statesPM25_var) +
   #  scale_fill_viridis_c(option="magma",begin=0.4)+
   # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
   scale_fill_gradient2(expression(paste("PM"[2.5], "variance")), 
-                       low = "#FFFFFF", #1e90ff
+                       low = "FFFFFF",#"#1e90ff", 
                        mid = "#ffcccb", #ffffba
                        high = "#8b0000", #8b0000
                        midpoint = -1.4, # 9
                        breaks = c(-3, -2, -1, 0, 1),
-                       labels = c("0.001", "0.01", "0.1", "1", "10+"),
+                       labels = c("0.001", "0.01", "0.1", "1", "10"),
                        limits = c(-3, 1),
                        na.value = "white") +
   # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
@@ -166,6 +166,55 @@ g3 <- ggplot(statesPM25_var) +
         panel.grid.major = element_line(colour = "transparent"))
 
 png("county_pm_variance.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
+g3
+dev.off()
+
+# take two of the above with different census tract PM
+
+pm25_var = cbind.data.frame(fips = as.numeric(names(weightedvarlist.pm25_2)), weightedvarlist.pm25_2)
+pm25_var$fips <- str_pad(pm25_var$fips, 5, pad = "0")
+pm25_var <- mutate(pm25_var,
+                   STATEFP = str_sub(fips, 1, 2),
+                   COUNTYFP = str_sub(fips, 3, 5))
+pm25_var$log10weightedvarlist.pm25 = log10(pm25_var$weightedvarlist.pm25)
+str(pm25_var)
+str(states)
+states$STATEFP <- as.character(states$STATEFP)
+states$COUNTYFP <- as.character(states$COUNTYFP)
+statesPM25_var <- left_join(states, pm25_var, by = c("STATEFP", "COUNTYFP"))
+
+g3 <- ggplot(statesPM25_var) +
+  xlim(-125, -65) + 
+  ylim(25, 50) +
+  geom_sf(aes(fill = log10weightedvarlist.pm25), color='grey', size = 0.005) +
+  #  scale_fill_viridis_c(option="magma",begin=0.4)+
+  # scale_fill_viridis_c(option="magma",begin=0,direction = -1, breaks = c(0,4,8,12,16,20))+
+  scale_fill_gradient2(expression(paste("PM"[2.5], "variance")), 
+                       low = "#1e90ff", #FFFFFF
+                       mid = "#ffcccb", #ffffba
+                       high = "#8b0000", #8b0000
+                       midpoint = -1.4, # 9
+                       breaks = c(-3, -2, -1, 0, 1),
+                       labels = c("0.001", "0.01", "0.1", "1", "10"),
+                       limits = c(-3, 1),
+                       na.value = "white") +
+  # labs(title = expression(paste("Annual Average of PM"[2.5]," per ",mu,g/m^3," in 2000-2016"))) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 24 * 2, hjust = 0.5),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        line = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal", 
+        legend.text = element_text(angle = 60,  size = 20*2),
+        legend.text.align = 0.65,
+        legend.title = element_text(size = 24*2),
+        legend.key.width = unit(150*2, "points"),
+        panel.grid.major = element_line(colour = "transparent"))
+
+png("county_pm_variance2.jpeg", height = 1024 * 0.6 * 2, width = 1024 * 2)
 g3
 dev.off()
 
@@ -265,7 +314,7 @@ load('./results/fit1_x.random.RData')
 vec4 = exp((rstan::extract(fit1_x.random)$pars[,2]))
 
 #c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )
-df = data.frame(x = c(1,2,3,4), 
+df = data.frame(x = c(1,2,3,4),
                 y = c(mean(vec1), mean(vec2), mean(vec3), mean(vec4)), 
                 lower = c(quantile(vec1, 0.025), quantile(vec2, 0.025), quantile(vec3, 0.025), quantile(vec4, 0.025)), 
                 upper = c(quantile(vec1, 0.975), quantile(vec2, 0.975), quantile(vec3, 0.975), quantile(vec4, 0.975)))
@@ -274,10 +323,11 @@ g3 = ggplot(df, aes(x, y)) +        # ggplot2 plot with confidence intervals
   geom_point() +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5) + 
   geom_hline(yintercept=1.0, linetype="dashed", color = "red") + 
-  #scale_x_discrete(limits = c('PUMS, 12/1/2020 (Main Analysis)', 'no PUMS, 12/1/2020', 'PUMS, 6/18/2020', 'no PUMS, 6/18/2020' )) + 
-  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12)+ theme(axis.text=element_text(size=14),
-                                                                                   axis.title=element_text(size=14)) +
-                                                                                    theme_bw(base_size = 20)
+  scale_x_discrete(limits = c('Main Analysis','Additional Analysis 1','Additional Analysis 2','Additional Analysis 3')) + 
+  ylab('Odds Ratios for PM 2.5') + xlab(element_blank()) + ylim(0.99, 1.12)+ theme_bw(base_size = 20) + theme(axis.text=element_text(size=14),
+                                                                                   axis.title=element_text(size=14), axis.text.x = element_text(angle = 90))                              
+                                                                                      
+
 
 png("pm25_or.jpeg", height = 600, width = 900, res = 100)
 g3
