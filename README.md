@@ -1,6 +1,6 @@
-# Ecological Bias: Air pollution and COVID-19 mortality in the United States
+# Combining aggregate and individual-level data to estimate individual-level associations between air pollution and COVID-19 mortality in the United States
 
-This is the data repository for public available code and data to reproduce analyses in S.M. Woodward\*, X. Wu\*, Z. Hou, D. Mork, D. Braun, F. Dominici, 2022. Combining aggregate and individual-level data to estimate individual-level associations between air pollution and COVID-19 mortality in the United States. 
+This is the data repository for public available code and data to reproduce analyses in S.M. Woodward\*, D. Mork\*, X. Wu, Z. Hou, D. Braun, F. Dominici, 2022. Combining aggregate and individual-level data to estimate individual-level associations between air pollution and COVID-19 mortality in the United States. 
 
 See [here](https://github.com/wxwx1993/PM_COVID/tree/master) for the previous analysis, Wu, X., Nethery, R. C., Sabath, M. B., Braun, D. and Dominici, F., 2020. Air pollution and COVID-19 mortality in the United States: Strengths and limitations of an ecological regression analysis. Science advances, 6(45), p.eabd4049.
 
@@ -22,7 +22,10 @@ See [here](https://github.com/wxwx1993/PM_COVID/tree/master) for the previous an
  
 ## Thank you
 
-We thank Randall Martin and the members of the Atmospheric Composition Analysis Group at Dalhousie University for providing access to their open-source datasets. Their data (V4.NA.02.MAPLE) that we used can be found here: [https://sites.wustl.edu/acag/datasets/surface-pm2-5/](https://sites.wustl.edu/acag/datasets/surface-pm2-5/). Citation: van Donkelaar, A., R. V. Martin, C. Li, R. T. Burnett, Regional Estimates of Chemical Composition of Fine Particulate Matter using a Combined Geoscience-Statistical Method with Information from Satellites, Models, and Monitors, Environ. Sci. Technol., doi: 10.1021/acs.est.8b06392, 2019.
+We thank Randall Martin and the members of the Atmospheric Composition Analysis Group at Dalhousie University for providing access to their open-source datasets. Their data (V4.NA.02.MAPLE) that we used can be found here: [https://sites.wustl.edu/acag/datasets/surface-pm2-5/](https://sites.wustl.edu/acag/datasets/surface-pm2-5/). 
+
+Citation: 
+van Donkelaar, A., R. V. Martin, C. Li, R. T. Burnett, Regional Estimates of Chemical Composition of Fine Particulate Matter using a Combined Geoscience-Statistical Method with Information from Satellites, Models, and Monitors, Environ. Sci. Technol., doi: 10.1021/acs.est.8b06392, 2019.
 
 We thank Qian Di and collaborators for providing us with 1km x 1km estimates of NO<sub>2</sub>, and Weeberb J Requia and collaborators for providing us with 1km x 1km estimates of O<sub>3</sub>.
 
