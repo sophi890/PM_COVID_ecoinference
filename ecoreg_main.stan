@@ -16,7 +16,7 @@ functions{
     
     if (numeffects[2]>0){ // check if binary and categorical covariates present
       alpha = pars[(numeffects[1]+1):(numeffects[1]+sum(numcats)-numeffects[2])]; // individual-level binary covariate effects
-      cateffs = whicha*alpha; //cateffs by strata
+      cateffs = whicha*alpha; //cateffs by strata (96 x 1)
     }
     
     // add "normal" covariate effects
@@ -38,7 +38,7 @@ functions{
   }
 }
 
-data{ // how to make generalizable?
+data{ 
   int numcounties;
   vector[numcounties] y; // deaths
   int numeffects[3];   // # group level, # categorical covariates, # normal covariates in that order
@@ -50,7 +50,7 @@ data{ // how to make generalizable?
 } 
 
 parameters{
-  vector[numeffects[1]+sum(numcats)-numeffects[2]+numeffects[3]] pars; // use bounds? eg <lower=-3,upper=3>
+  vector[numeffects[1]+sum(numcats)-numeffects[2]+numeffects[3]] pars; 
   real mu;
   real<lower=0,upper=1> sigma;
   vector[49] rand;
@@ -59,9 +59,9 @@ parameters{
 model{
   mu ~ normal(-8,5);
   rand ~ normal(mu, sigma);
-  pars[1:16] ~ normal(0, sqrt(0.68)); // priors for remaining //corresponds to 95 percent odds ratio between 1/5 and 5
-  pars[17] ~ normal(4.033,0.0179);
-  pars[18] ~ normal(-0.621, 0.0302);
+  pars[1:16] ~ normal(0, sqrt(0.68)); // corresponds to 95 percent odds ratio between 1/5 and 5
+  pars[17] ~ normal(4.033,0.0179); // prior for age>40
+  pars[18] ~ normal(-0.621, 0.0302); // prior for female
   pars[19:] ~ normal(0, sqrt(0.68));
   y ~ loglikeco(numcounties, numeffects, numcats, covlist, adata, whicha, states, pars, rand); // log likelihood
 }
