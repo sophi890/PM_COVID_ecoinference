@@ -2,27 +2,81 @@ library('rstan')
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-# Main Analysis
-load('./results/fit6.Rdata')
-print(fit6)
-for (i in 1:24){
-  print(noquote(paste(signif(exp(mean(extract(fit6)$pars[,i])),4), ' & ','(', signif(exp(mean(extract(fit6)$pars[,i])-1.96*sd(extract(fit6)$pars[,i])),4), ', ', signif(exp(mean(extract(fit6)$pars[,i])+1.96*sd(extract(fit6)$pars[,i])),4), ')', sep = '')))
-}
-
-load('./results/fit_fakesex.Rdata')
-print(fit_fakesex)
-for (i in 1:24){
-  print(noquote(paste(signif(exp(mean(extract(fit_fakesex)$pars[,i])),4), ' & ','(', signif(exp(mean(extract(fit_fakesex)$pars[,i])-1.96*sd(extract(fit_fakesex)$pars[,i])),4), ', ', signif(exp(mean(extract(fit_fakesex)$pars[,i])+1.96*sd(extract(fit_fakesex)$pars[,i])),4), ')', sep = '')))
-}
-
-load('./results/fit_sexonly.Rdata')
-print(fit_sexonly)
-for (i in 1:18){
-  print(noquote(paste(signif(exp(mean(extract(fit_sexonly)$pars[,i])),4), ' & ','(', signif(exp(mean(extract(fit_sexonly)$pars[,i])-1.96*sd(extract(fit_sexonly)$pars[,i])),4), ', ', signif(exp(mean(extract(fit_sexonly)$pars[,i])+1.96*sd(extract(fit_sexonly)$pars[,i])),4), ')', sep = '')))
-}
-
-load('./results/fit_withoutsex.Rdata')
-print(fit_withoutsex)
+# Full results for Main Analysis
 for (i in 1:23){
-  print(noquote(paste(signif(exp(mean(extract(fit_withoutsex)$pars[,i])),4), ' & ','(', signif(exp(mean(extract(fit_withoutsex)$pars[,i])-1.96*sd(extract(fit_withoutsex)$pars[,i])),4), ', ', signif(exp(mean(extract(fit_withoutsex)$pars[,i])+1.96*sd(extract(fit_withoutsex)$pars[,i])),4), ')', sep = '')))
+  print(noquote(paste(signif(exp(mean(rstan::extract(fit_main)$pars[,i])),4), 
+                      ' & ','(', signif(exp(mean(rstan::extract(fit_main)$pars[,i])-1.96*sd(rstan::extract(fit_main)$pars[,i])),4), 
+                      ', ', signif(exp(mean(rstan::extract(fit_main)$pars[,i])+1.96*sd(rstan::extract(fit_main)$pars[,i])),4), ')', 
+                      sep = '')))
 }
+
+# PM2.5 only
+# Main analysis
+print(noquote(paste(signif(exp(mean(rstan::extract(fit_main)$pars[,23])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit_main)$pars[,23])-1.96*sd(rstan::extract(fit_main)$pars[,23])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit_main)$pars[,23])+1.96*sd(rstan::extract(fit_main)$pars[,23])),4), ')', 
+                    sep = '')))
+
+# Additional Analysis 1: Ecological 12/1/2020
+load('./dataverse/results/fit_add1.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit_add1)$pars[,2])),4), 
+                      ' & ','(', signif(exp(mean(rstan::extract(fit_add1)$pars[,2])-1.96*sd(rstan::extract(fit_add1)$pars[,2])),4), 
+                      ', ', signif(exp(mean(rstan::extract(fit_add1)$pars[,2])+1.96*sd(rstan::extract(fit_add1)$pars[,2])),4), ')', 
+                      sep = '')))
+
+# Additional Analysis 2: Hierarchical 6/18/2020
+load('./dataverse/results/fit_add2.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit_add2)$pars[,23])),4), 
+                      ' & ','(', signif(exp(mean(rstan::extract(fit_add2)$pars[,23])-1.96*sd(rstan::extract(fit_add2)$pars[,23])),4), 
+                      ', ', signif(exp(mean(rstan::extract(fit_add2)$pars[,23])+1.96*sd(rstan::extract(fit_add2)$pars[,23])),4), ')', 
+                      sep = '')))
+
+# Additional Analysis 3: Ecological 6/18/2020
+load('./dataverse/results/fit_add3.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit_add3)$pars[,2])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit_add3)$pars[,2])-1.96*sd(rstan::extract(fit_add3)$pars[,2])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit_add3)$pars[,2])+1.96*sd(rstan::extract(fit_add3)$pars[,2])),4), ')', 
+                    sep = '')))
+
+# SENSITIVITY ANALYSES
+load('./dataverse/results/fit1.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit1)$pars[,17])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit1)$pars[,17])-1.96*sd(rstan::extract(fit1)$pars[,17])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit1)$pars[,17])+1.96*sd(rstan::extract(fit1)$pars[,17])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit2.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit2)$pars[,25])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit2)$pars[,25])-1.96*sd(rstan::extract(fit2)$pars[,25])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit2)$pars[,25])+1.96*sd(rstan::extract(fit2)$pars[,25])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit3.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit3)$pars[,17])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit3)$pars[,17])-1.96*sd(rstan::extract(fit3)$pars[,17])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit3)$pars[,17])+1.96*sd(rstan::extract(fit3)$pars[,17])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit4.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit4)$pars[,1])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit4)$pars[,1])-1.96*sd(rstan::extract(fit4)$pars[,1])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit4)$pars[,1])+1.96*sd(rstan::extract(fit4)$pars[,1])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit5.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit5)$pars[,2])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit5)$pars[,2])-1.96*sd(rstan::extract(fit5)$pars[,2])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit5)$pars[,2])+1.96*sd(rstan::extract(fit5)$pars[,2])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit6.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit6)$pars[,1])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit6)$pars[,1])-1.96*sd(rstan::extract(fit6)$pars[,1])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit6)$pars[,1])+1.96*sd(rstan::extract(fit6)$pars[,1])),4), ')', 
+                    sep = '')))
+
+load('./dataverse/results/fit7.Rdata')
+print(noquote(paste(signif(exp(mean(rstan::extract(fit7)$pars[,2])),4), 
+                    ' & ','(', signif(exp(mean(rstan::extract(fit7)$pars[,2])-1.96*sd(rstan::extract(fit7)$pars[,2])),4), 
+                    ', ', signif(exp(mean(rstan::extract(fit7)$pars[,2])+1.96*sd(rstan::extract(fit7)$pars[,2])),4), ')', 
+                    sep = '')))
