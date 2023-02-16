@@ -2,9 +2,9 @@ library('rstan')
 options(mc.cores = 4)
 rstan_options(auto_write = TRUE)
 
-load("../dataverse/processed_dat/ecoreg_2.RData")
+load("../dataverse/processed_dat/dat_2.RData")
 
-fit2 = stan(file = '../sensitivity/ecoreg_2.stan', 
+fit2 = stan(file = '../sensitivity/hierbayes_2.stan', 
                    data = list(y=adata[,1], 
                                numcounties = 3082, 
                                numeffects = c(13, 6, 3), 

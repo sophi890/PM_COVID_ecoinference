@@ -4,7 +4,7 @@ rstan_options(auto_write = TRUE)
 
 # Cluster usage is not necessary here (shorter run time)
 
-load('../dataverse/processed_dat/ecoreg_add3.RData')
+load('../dataverse/processed_dat/dat_add3.RData')
 
 ## Run MCMC
 fit_add3 = stan(file = '../sensitivity/ecological.stan', 
