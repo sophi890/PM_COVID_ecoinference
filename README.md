@@ -6,11 +6,11 @@ See [here](https://github.com/wxwx1993/PM_COVID/tree/master) for the previous an
 
 ## Code
 
- - **Preprocessing.R** includes the code to extract all necessary data and prepocess data for statistical analyses.
- - **ecoreg_random.stan** is the stan file for the main analysis. **ecoreg_random_fixedoffset.stan** is the stan file for some sensitivity analyses.
- - **RCCluster** contains R files and shell files for running all models on the FAS RC cluster. In particular, **fit_main.R** contained within includes code to run the main model. 
- - **print_results.R** includes the code to print OR estimates and confidence intervals in the Main Text and Supplementary Materials.
- - **Figure.R** includes the code to generate figures in the Main Text and Supplementary Materials.
+ - **Preprocessing.R** includes the code to extract all necessary data and preprocess data for statistical analyses.
+ - **hierbayes_main.stan** is the stan file for the main analysis. Stan files for sensitivity analyses can be found in the folder **sensitivity**.
+ - **RCCluster** contains R files and shell files for running all models on the FAS RC cluster. In particular, **fit_main.R** contained within includes code to run the main model.
+ - **print_results.R** includes the code to print OR estimates and confidence intervals in the Main Text.
+ - **Figure.R** includes the code to generate figures in the Main Text.
  
 ## Data
 
