@@ -2,7 +2,7 @@ library('rstan')
 options(mc.cores = 4)
 rstan_options(auto_write = TRUE)
 
-load("../ecoreg_main.RData")
+load("../dataverse/processed_dat/ecoreg_main.RData")
 
 fit_main = stan(file = '../ecoreg_main.stan', 
                                  data = list(y=adata[,1], 
@@ -16,6 +16,6 @@ fit_main = stan(file = '../ecoreg_main.stan',
                          iter = 4000)
 
 
-save(fit_main, file=paste0("../results/fit_main.Rdata"))
+save(fit_main, file=paste0("../dataverse/results/fit_main.Rdata"))
 
 
